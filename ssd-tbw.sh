@@ -66,8 +66,8 @@ echo
 echo "Всего записано данных: $TBW ТБайт"
 
 # Косвенная проверка данных параметра 241
-list_parts=`lsblk -l -p -n -o NAME /dev/$dev`											# Список разделов устройства
-used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g'`	# Суммарный занимаемый объем в Гбайтах
+list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов устройства
+used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
 echo "Всего занято на разделах диска: $used Гбайт"
 TBWG=`echo "$TBW * 1024" | bc -l`
 TBWG=${TBWG%%.*}
