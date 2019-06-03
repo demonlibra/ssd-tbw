@@ -9,4 +9,4 @@
 Или используйте [Текст сценария](https://github.com/demonlibra/ssd-tbw/raw/master/ssd-tbw.sh).
 
 ## Предложения и замечания
-Свои замечания Вы можете разместить на форуме [linuxmint.com.ru](https://linuxmint.com.ru/viewtopic.php?t=271&start=160).
+Свои замечания Вы можете разместить на форуме [linuxmint.com.ru](https://linuxmint.com.ru/viewtopic.php?p=81012#p81012).

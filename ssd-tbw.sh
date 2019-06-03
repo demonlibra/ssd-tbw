@@ -27,9 +27,9 @@ read dev
 
 # Вывод информации о диске
 echo
-sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed s/"Device Model"/"Модель диска"/g
-sudo smartctl /dev/"$dev" --all | grep "Serial Number" | sed s/"Serial Number"/"Серийный номер"/g
-sudo smartctl /dev/"$dev" --all | grep "User Capacity" | sed s/"User Capacity"/"Объем диска"/g
+sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed 's/"Device Model"/"Модель диска"/g'
+sudo smartctl /dev/"$dev" --all | grep "Serial Number" | sed 's/"Serial Number"/"Серийный номер"/g'
+sudo smartctl /dev/"$dev" --all | grep "User Capacity" | sed 's/"User Capacity"/"Объем диска"/g'
 
 # Всего записано блоков - 241 Total_LBAs_Written
 Total_LBAs_Written=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
@@ -81,10 +81,11 @@ fi
 # Количество отработанных часов
 Power_On_Hours=`sudo smartctl /dev/"$dev" --all | grep "Power_On_Hours"`
 Power_On_Hours=${Power_On_Hours##* }
+echo
+echo "9 Power_On_Hours: $Power_On_Hours"
 Power_On_Hours=${Power_On_Hours%%h*}
 Power_On_Years=`echo "scale=2; $Power_On_Hours / 24 / 365" | bc -l | sed 's/^\./0./'`
 
-echo
 echo "Всего отработано: $Power_On_Hours часов ($Power_On_Years лет)"
 echo
 
