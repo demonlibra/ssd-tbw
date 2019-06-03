@@ -81,6 +81,7 @@ fi
 # Количество отработанных часов
 Power_On_Hours=`sudo smartctl /dev/"$dev" --all | grep "Power_On_Hours"`
 Power_On_Hours=${Power_On_Hours##* }
+Power_On_Hours=${Power_On_Hours%%h*}
 Power_On_Years=`echo "scale=2; $Power_On_Hours / 24 / 365" | bc -l | sed 's/^\./0./'`
 
 echo
