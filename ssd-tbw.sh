@@ -72,10 +72,43 @@ echo "Всего занято на разделах диска: $used Гбайт
 TBWG=`echo "$TBW * 1024" | bc -l`
 TBWG=${TBWG%%.*}
 
-if [[ "$used" -gt "$TBWG" ]]
+if [ "$used" -gt "$TBWG" ]
 	then echo
 		echo "Вероятно данные TBW определены неверно."
+		echo "Производитель заложил в параметр 241 только ему ведомые значения."
 		echo "Занимаемое место на диске ($used Гбайт) больше определенного значения TBW ($TBWG Гбайт)."
+		
+		echo
+		echo -n "Введите Y для выполнения тестовой записи: "
+		read test
+		if [ "${test,,}" = "y" ]
+		then
+			echo -n "Введите полный путь к файлу на SSD для тестовой записи: "
+			read path_ssd
+			echo -n "Введите объем данных в Мб: "
+			read capacity
+			Total_LBAs_Written=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
+			Total_LBAs_Written=${Total_LBAs_Written##* }
+			echo
+			echo "241 до записи = $Total_LBAs_Written"
+			echo
+			
+			dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
+			echo
+			
+			Total_LBAs_Written_check=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
+			Total_LBAs_Written_check=${Total_LBAs_Written_check##* }
+			echo "241 после записи = $Total_LBAs_Written_check"
+			
+			difference=$(($Total_LBAs_Written_check - $Total_LBAs_Written))
+			echo "Разница = $difference"
+			ratio=$((10 * 1024 * 1024 / $difference))
+			echo "Коэффициент = $ratio"
+			TBW=`echo "scale=3; $Total_LBAs_Written * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+			echo
+			echo "Расчитанное значение TBW после тестовой записи: $TBW ТБайт"
+			rm $path_ssd
+		fi
 fi
 
 # Количество отработанных часов
@@ -84,9 +117,10 @@ Power_On_Hours=${Power_On_Hours##* }
 echo
 echo "9 Power_On_Hours: $Power_On_Hours"
 Power_On_Hours=${Power_On_Hours%%h*}
+Power_On_Days=`echo "scale=0; $Power_On_Hours / 24 " | bc -l | sed 's/^\./0./'`
 Power_On_Years=`echo "scale=2; $Power_On_Hours / 24 / 365" | bc -l | sed 's/^\./0./'`
 
-echo "Всего отработано: $Power_On_Hours часов ($Power_On_Years лет)"
+echo "Всего отработано: $Power_On_Hours часов = $Power_On_Days дней = $Power_On_Years лет"
 echo
 
 read -p "Нажмите ENTER чтобы закрыть окно"
