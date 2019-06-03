@@ -3,19 +3,19 @@
 # Вывод списка всех дисков
 echo
 echo "Обнаружены следующие диски:"
+echo
 lsblk -d -o NAME,SIZE,MODEL,SERIAL
 echo "------------------------------------------------------"
 
 # Поиск дисков SSD
 echo
 echo "Обнаружены следующие диски SSD:"
-
+echo
 disks=`lsblk -d -n -o NAME`
 for disk in $disks
 	do
-		check_SSD=`sudo smartctl /dev/"$disk" --all | grep "SSD"`
-		if [ -n "$check_SSD" ]
-			then echo "$disk $check_SSD" | sed s/"Device Model:"//g
+		if [ `sudo smartctl /dev/"$disk" --all | grep -c "SSD"` -ne 0 ]
+			then lsblk -d -o NAME,SIZE,MODEL,SERIAL /dev/$disk
 		fi
 done
 echo "------------------------------------------------------"
