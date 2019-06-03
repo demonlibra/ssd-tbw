@@ -40,8 +40,15 @@ Lifetime_Writes_GiB=`sudo smartctl /dev/"$dev" --all | grep "Lifetime_Writes_GiB
 Lifetime_Writes_GiB=${Lifetime_Writes_GiB##* }
 echo "241 Lifetime_Writes_GiB: $Lifetime_Writes_GiB"
 
+# Всего записано блоков по 32MiB - 241 Host_Writes_32MiB
+Host_Writes_32MiB=`sudo smartctl /dev/"$dev" --all | grep "Host_Writes_32MiB"`
+Host_Writes_32MiB=${Host_Writes_32MiB##* }
+echo "241 Host_Writes_32MiB: $Host_Writes_32MiB"
+
+
 # Размер сектора
 sector_size=`cat /sys/block/"$dev"/queue/hw_sector_size`
+echo
 echo "Sector Size: $sector_size"
 
 # Расчет записанных данных
@@ -49,6 +56,8 @@ if [ -n "$Total_LBAs_Written" ]
 	then TBW=`echo "scale=3; $sector_size * $Total_LBAs_Written / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 elif [ -n "$Lifetime_Writes_GiB" ]
 	then TBW=`echo "scale=3; $Lifetime_Writes_GiB / 1024" | bc -l | sed 's/^\./0./'`
+elif [ -n "$Host_Writes_32MiB" ]
+	then TBW=`echo "scale=3; $Host_Writes_32MiB * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 fi
 
 echo
