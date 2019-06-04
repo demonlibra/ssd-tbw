@@ -112,7 +112,7 @@ if [ "$used" -gt "$TBWG" ]
 			
 			difference=$(($Total_LBAs_Written_check - $Total_LBAs_Written))
 			echo "Разница = $difference"
-			ratio=$((10 * 1024 * 1024 / $difference))
+			ratio=$(($capacity * 1024 * 1024 / $difference))
 			echo "Коэффициент = $ratio"
 			TBW=`echo "scale=3; $Total_LBAs_Written * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 			
