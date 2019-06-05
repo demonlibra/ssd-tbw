@@ -24,13 +24,9 @@ echo "------------------------------------------------------"
 echo
 echo -n "Введите идентификатор диска /dev/"
 read dev
+
 if [[ $disks == *"$dev"* ]]
 	then
-
-		# Ввод даты установки диска
-		echo
-		echo -n "Введите дату начала использования диска (пример формата 2018-01-01): "
-		read start_use
 
 		# Вывод информации о диске
 		echo
@@ -150,17 +146,27 @@ if [[ $disks == *"$dev"* ]]
 		Power_On_Years=`echo "scale=2; $Power_On_Hours / 24 / 365" | bc -l | sed 's/^\./0./'`
 		echo -e '\E[1;34m'"Всего отработано: $Power_On_Hours часов = $Power_On_Days дней = $Power_On_Years лет"; tput sgr0
 
+		# Ввод даты установки диска
+		echo
+		echo -n "Введите дату начала использования диска (пример формата 2018-01-01 или 20180101 или 180101 или 18-01-01): "
+		read start_use
+		
 		# Статистика использования диска от даты установки
 		if [ -n "$start_use" ]
 			then
-				today=`date +%Y-%m-%d`
-				days_use=$(( (`date -d "$today" '+%s'` - `date -d "$start_use" '+%s'`) / (24*3600) ))
-				#echo $days_use
-				percent_use=$((100 * $Power_On_Days / $days_use))
-				echo
-				echo "Диск находился в работе "$percent_use"% от общего срока службы"
-				if [ -n "$TBWG" ]
-					then echo "Средний объем записываемых данных: "$(($TBWG / $days_use))" ГБайт в день"
+				today_seconds=`date '+%s'`
+				start_use_seconds=`date -d "$start_use" '+%s'`
+				if [ $? = 0 ] && [ $today_seconds -gt $start_use_seconds ]
+					then
+						days_use=$(( ($today_seconds - $start_use_seconds) / (24 * 3600) ))
+						#echo $days_use
+						percent_use=$((100 * $Power_On_Days / $days_use))
+						echo
+						echo "Диск находился в работе "$percent_use"% от общего срока службы"
+						if [ -n "$TBWG" ]
+							then echo "Средний объем записываемых данных: "$(($TBWG / $days_use))" ГБайт в день"
+						fi
+					else echo -e '\E[1;31m'"Дата введена не корректно"; tput sgr0
 				fi
 		fi
 
