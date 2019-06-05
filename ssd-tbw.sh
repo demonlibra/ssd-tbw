@@ -25,6 +25,11 @@ echo
 echo -n "Введите идентификатор диска /dev/"
 read dev
 
+# Ввод даты установки диска
+echo
+echo -n "Введите дату начала использования диска (пример формата 2018-01-01): "
+read start_use
+
 # Вывод информации о диске
 echo
 sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed 's/"Device Model"/"Модель диска"/g'
@@ -115,6 +120,8 @@ if [ "$used" -gt "$TBWG" ]
 			ratio=$(($capacity * 1024 * 1024 / $difference))
 			echo "Коэффициент = $ratio"
 			TBW=`echo "scale=3; $Total_LBAs_Written * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+			TBWG=`echo "$TBW * 1024" | bc -l`
+			TBWG=${TBWG%%.*}
 			
 			echo
 			echo -e '\E[1;34m'"Расчитанное значение TBW после тестовой записи: $TBW ТБайт"; tput sgr0
@@ -131,8 +138,19 @@ echo "9 Power_On_Hours: $Power_On_Hours"
 Power_On_Hours=${Power_On_Hours%%h*}
 Power_On_Days=`echo "scale=0; $Power_On_Hours / 24 " | bc -l | sed 's/^\./0./'`
 Power_On_Years=`echo "scale=2; $Power_On_Hours / 24 / 365" | bc -l | sed 's/^\./0./'`
-
 echo -e '\E[1;34m'"Всего отработано: $Power_On_Hours часов = $Power_On_Days дней = $Power_On_Years лет"; tput sgr0
-echo
 
+# Статистика использования диска от дату установки
+if [ -n "$start_use" ]
+	then
+		today=`date +%Y-%m-%d`
+		days_use=$(( (`date -d "$today" '+%s'` - `date -d "$start_use" '+%s'`) / (24*3600) ))
+		#echo $days_use
+		percent_use=$((100 * $Power_On_Days / $days_use))
+		echo
+		echo "Диск находился в работе "$percent_use"% от общего срока службы"
+		echo "Средний объем записываемых данных: "$(($TBWG / $days_use))" ГБайт в день"
+fi
+
+echo
 read -p "Нажмите ENTER чтобы закрыть окно"
