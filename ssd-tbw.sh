@@ -67,68 +67,76 @@ elif [ -n "$Host_Writes_32MiB" ]
 	then TBW=`echo "scale=3; $Host_Writes_32MiB * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 fi
 
-echo
-echo -e '\E[1;34m'"Всего записано данных: $TBW ТБайт"; tput sgr0
-
-# Косвенная проверка данных параметра 241
-list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов устройства
-used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
-echo "Всего занято на разделах диска: $used Гбайт"
-TBWG=`echo "$TBW * 1024" | bc -l`																		#TBW в ГБайтах
-TBWG=${TBWG%%.*}
-
-if [ "$used" -gt "$TBWG" ]
-	then echo
-		echo "Вероятно данные TBW определены неверно."
-		echo "Производитель заложил в параметр 241 только ему ведомые значения."
-		echo "Занимаемое место на диске ($used Гбайт) больше определенного значения TBW ($TBWG Гбайт)."
-		
+if [ -n "$TBW" ]
+	then
 		echo
-		echo -n "Введите Y для выполнения тестовой записи: "
-		read test
-		if [ "${test,,}" = "y" ]
-		then
-			echo -n "Введите полный путь к файлу на SSD для тестовой записи (по умолчанию ssd_test): "
-			read path_ssd
-			if [ -z $path_ssd ]; then path_ssd=ssd_test; fi
-			
-			echo -n "Введите объем данных в Мб (по умолчанию 100): "
-			read capacity
-			if [ -z $capacity ]; then capacity=100; fi
-			
-			echo "------------------------------------------------------"
-			
-			#dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
-			sync
-			
-			Total_LBAs_Written=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
-			Total_LBAs_Written=${Total_LBAs_Written##* }
-			echo
-			echo "241 до записи = $Total_LBAs_Written"
-			echo
-			
-			dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
-			sync
-			echo
-			
-			Total_LBAs_Written_check=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
-			Total_LBAs_Written_check=${Total_LBAs_Written_check##* }
-			echo "241 после записи = $Total_LBAs_Written_check"
-			
-			difference=$(($Total_LBAs_Written_check - $Total_LBAs_Written))
-			echo "Разница = $difference"
-			ratio=$(($capacity * 1024 * 1024 / $difference))
-			echo "Коэффициент = $ratio"
-			TBW=`echo "scale=3; $Total_LBAs_Written * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
-			TBWG=`echo "$TBW * 1024" | bc -l`
-			TBWG=${TBWG%%.*}
-			
-			echo
-			echo -e '\E[1;34m'"Расчитанное значение TBW после тестовой записи: $TBW ТБайт"; tput sgr0
-			rm $path_ssd
-			echo "------------------------------------------------------"
+		echo -e '\E[1;34m'"Всего записано данных: $TBW ТБайт"; tput sgr0
+		
+		# Косвенная проверка данных параметра 241
+		list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов устройства
+		used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
+		echo "Всего занято на разделах диска: $used Гбайт"
+		TBWG=`echo "$TBW * 1024" | bc -l`																		#TBW в ГБайтах
+		TBWG=${TBWG%%.*}
+		
+		if  [ "$used" -gt "$TBWG" ]
+			then echo
+				echo "Вероятно данные TBW определены неверно."
+				echo "Производитель заложил в параметр 241 только ему ведомые значения."
+				echo "Занимаемое место на диске ($used Гбайт) больше определенного значения TBW ($TBWG Гбайт)."
+
+				echo
+				echo -n "Введите Y для выполнения тестовой записи: "
+				read test
+				if [ "${test,,}" = "y" ]
+					then
+						echo -n "Введите полный путь к файлу на SSD для тестовой записи (по умолчанию ssd_test): "
+						read path_ssd
+						if [ -z $path_ssd ]; then path_ssd=ssd_test; fi
+
+						echo -n "Введите объем данных в Мб (по умолчанию 100): "
+						read capacity
+						if [ -z $capacity ]; then capacity=100; fi
+
+						echo "------------------------------------------------------"
+
+						#dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
+						sync
+
+						Total_LBAs_Written=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
+						Total_LBAs_Written=${Total_LBAs_Written##* }
+						echo
+						echo "241 до записи = $Total_LBAs_Written"
+						echo
+
+						dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
+						sync
+						echo
+
+						Total_LBAs_Written_check=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
+						Total_LBAs_Written_check=${Total_LBAs_Written_check##* }
+						echo "241 после записи = $Total_LBAs_Written_check"
+
+						difference=$(($Total_LBAs_Written_check - $Total_LBAs_Written))
+						echo "Разница = $difference"
+						ratio=$(($capacity * 1024 * 1024 / $difference))
+						echo "Коэффициент = $ratio"
+						TBW=`echo "scale=3; $Total_LBAs_Written * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+						TBWG=`echo "$TBW * 1024" | bc -l`
+						TBWG=${TBWG%%.*}
+
+						echo
+						echo -e '\E[1;34m'"Расчитанное значение TBW после тестовой записи: $TBW ТБайт"; tput sgr0
+						rm $path_ssd
+						echo "------------------------------------------------------"
+				fi
 		fi
+
+	else
+		echo
+		echo -e '\E[1;31m'"Вывод smartctl не содержит данных для определения записанных данных"; echo "Возможно вы указали не SSD диск."; tput sgr0
 fi
+
 
 # Количество отработанных часов
 Power_On_Hours=`sudo smartctl /dev/"$dev" --all | grep "Power_On_Hours"`
@@ -140,7 +148,7 @@ Power_On_Days=`echo "scale=0; $Power_On_Hours / 24 " | bc -l | sed 's/^\./0./'`
 Power_On_Years=`echo "scale=2; $Power_On_Hours / 24 / 365" | bc -l | sed 's/^\./0./'`
 echo -e '\E[1;34m'"Всего отработано: $Power_On_Hours часов = $Power_On_Days дней = $Power_On_Years лет"; tput sgr0
 
-# Статистика использования диска от дату установки
+# Статистика использования диска от даты установки
 if [ -n "$start_use" ]
 	then
 		today=`date +%Y-%m-%d`
@@ -149,7 +157,9 @@ if [ -n "$start_use" ]
 		percent_use=$((100 * $Power_On_Days / $days_use))
 		echo
 		echo "Диск находился в работе "$percent_use"% от общего срока службы"
-		echo "Средний объем записываемых данных: "$(($TBWG / $days_use))" ГБайт в день"
+		if [ -n "$TBWG" ]
+			then echo "Средний объем записываемых данных: "$(($TBWG / $days_use))" ГБайт в день"
+		fi
 fi
 
 echo
