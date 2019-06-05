@@ -161,11 +161,27 @@ if [[ $disks == *"$dev"* ]]
 						days_use=$(( ($today_seconds - $start_use_seconds) / (24 * 3600) ))
 						#echo $days_use
 						percent_use=$((100 * $Power_On_Days / $days_use))
+						
 						echo
 						echo "Диск находился в работе "$percent_use"% от общего срока службы"
+						
 						if [ -n "$TBWG" ]
-							then echo "Средний объем записываемых данных: "$(($TBWG / $days_use))" ГБайт в день"
+							then
+								echo "Средний объем записываемых данных: "$(($TBWG / $days_use))" ГБайт в день"
+								
+								echo
+								echo -n "Введите гарантированный производителем объем записываемых данных (Тбайт): "
+								read garanty_TBW
+								
+								if [ -n "$garanty_TBW" ]
+									then
+										echo
+										echo "Израсходованый ресурс диска: "$(($TBWG / 1024 * 100 / $garanty_TBW))"%"
+										echo "Теоретический срок эксплуатации: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))" лет"
+								fi
+								
 						fi
+						
 					else echo -e '\E[1;31m'"Дата введена не корректно"; tput sgr0
 				fi
 		fi
