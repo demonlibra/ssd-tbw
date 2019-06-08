@@ -1,4 +1,8 @@
 #!/bin/bash
+# Предварительный ввод пароля
+echo "Для выполнения команды smartctl подтребуются права root"
+sudo echo
+clear
 
 # Вывод списка всех дисков
 echo
@@ -30,39 +34,40 @@ if [[ $disks == *"$dev"* ]]
 
 		# Вывод информации о диске
 		echo
-		sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed 's/"Device Model"/"Модель диска"/g'
-		sudo smartctl /dev/"$dev" --all | grep "Serial Number" | sed 's/"Serial Number"/"Серийный номер"/g'
-		sudo smartctl /dev/"$dev" --all | grep "User Capacity" | sed 's/"User Capacity"/"Объем диска"/g'
+		sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed 's/Device Model/Модель диска/g'
+		sudo smartctl /dev/"$dev" --all | grep "Serial Number" | sed 's/Serial Number/Серийный номер/g'
+		sudo smartctl /dev/"$dev" --all | grep "User Capacity" | sed 's/User Capacity/Объем диска/g'
 
 		# Всего записано блоков - 241 Total_LBAs_Written
 		Total_LBAs_Written=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
 		Total_LBAs_Written=${Total_LBAs_Written##* }
-		echo
-		echo "241 Total_LBAs_Written: $Total_LBAs_Written"
 
 		# Всего записано Gib - 241 Lifetime_Writes_GiB
 		Lifetime_Writes_GiB=`sudo smartctl /dev/"$dev" --all | grep "Lifetime_Writes_GiB"`
 		Lifetime_Writes_GiB=${Lifetime_Writes_GiB##* }
-		echo "241 Lifetime_Writes_GiB: $Lifetime_Writes_GiB"
 
 		# Всего записано блоков по 32MiB - 241 Host_Writes_32MiB
 		Host_Writes_32MiB=`sudo smartctl /dev/"$dev" --all | grep "Host_Writes_32MiB"`
 		Host_Writes_32MiB=${Host_Writes_32MiB##* }
-		echo "241 Host_Writes_32MiB: $Host_Writes_32MiB"
-
 
 		# Размер сектора
-		sector_size=`cat /sys/block/"$dev"/queue/hw_sector_size`
 		echo
+		sector_size=`cat /sys/block/"$dev"/queue/hw_sector_size`
 		echo "Sector Size: $sector_size"
-
+		
 		# Расчет записанных данных
 		if [ -n "$Total_LBAs_Written" ]
-			then TBW=`echo "scale=3; $sector_size * $Total_LBAs_Written / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+			then
+				echo "241 Total_LBAs_Written: $Total_LBAs_Written"
+				TBW=`echo "scale=3; $sector_size * $Total_LBAs_Written / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 		elif [ -n "$Lifetime_Writes_GiB" ]
-			then TBW=`echo "scale=3; $Lifetime_Writes_GiB / 1024" | bc -l | sed 's/^\./0./'`
+			then
+				echo "241 Lifetime_Writes_GiB: $Lifetime_Writes_GiB"
+				TBW=`echo "scale=3; $Lifetime_Writes_GiB / 1024" | bc -l | sed 's/^\./0./'`
 		elif [ -n "$Host_Writes_32MiB" ]
-			then TBW=`echo "scale=3; $Host_Writes_32MiB * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+			then
+				echo "241 Host_Writes_32MiB: $Host_Writes_32MiB"
+				TBW=`echo "scale=3; $Host_Writes_32MiB * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 		fi
 
 		if [ -n "$TBW" ]
@@ -148,7 +153,7 @@ if [[ $disks == *"$dev"* ]]
 
 		# Ввод даты установки диска
 		echo
-		echo -n "Введите дату начала использования диска (пример 20180827): "
+		echo -n "Введите дату начала использования диска в формате год-месяц-число: "
 		read start_use
 
 		# Статистика использования диска от даты установки
@@ -164,7 +169,7 @@ if [[ $disks == *"$dev"* ]]
 						percent_use=$((100 * $Power_On_Days / $days_use))
 						
 						echo
-						echo "Диск находился в работе "$percent_use"% от общего срока службы"
+						echo "Диск находился в работе "$percent_use"% от даты приобритения"
 						
 						if [ -n "$TBWG" ]
 							then
@@ -176,8 +181,14 @@ if [[ $disks == *"$dev"* ]]
 								
 								if [ -n "$garanty_TBW" ]
 									then
+										resource=$(($TBWG / 1024 * 100 / $garanty_TBW))
 										echo
-										echo "Израсходованный ресурс диска: "$(($TBWG / 1024 * 100 / $garanty_TBW))"%"
+										if (( $resource < 30 ))
+											then echo -e '\E[1;32m'"Израсходованный ресурс диска: $resource%"; tput sgr0 
+										elif (( $resource < 50 ))
+											then echo -e '\E[1;33m'"Израсходованный ресурс диска: $resource%"; tput sgr0
+										else echo -e '\E[1;31m'"Израсходованный ресурс диска: $resource%"; tput sgr0
+										fi
 										echo "Теоретически возможный срок эксплуатации с учетом ресурса записи: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))" лет"
 								fi
 								
