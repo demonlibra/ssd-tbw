@@ -148,13 +148,14 @@ if [[ $disks == *"$dev"* ]]
 
 		# Ввод даты установки диска
 		echo
-		echo -n "Введите дату начала использования диска (пример формата 2018-01-01 или 20180101 или 180101 или 18-01-01): "
+		echo -n "Введите дату начала использования диска (пример 20180827): "
 		read start_use
-		
+
 		# Статистика использования диска от даты установки
 		if [ -n "$start_use" ]
 			then
 				today_seconds=`date '+%s'`
+				start_use=${start_use//[^0-9]/}								# Оставляем в дате только цифры
 				start_use_seconds=`date -d "$start_use" '+%s'`
 				if [ $? = 0 ] && [ $today_seconds -gt $start_use_seconds ]
 					then
@@ -176,13 +177,13 @@ if [[ $disks == *"$dev"* ]]
 								if [ -n "$garanty_TBW" ]
 									then
 										echo
-										echo "Израсходованый ресурс диска: "$(($TBWG / 1024 * 100 / $garanty_TBW))"%"
-										echo "Теоретический срок эксплуатации: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))" лет"
+										echo "Израсходованный ресурс диска: "$(($TBWG / 1024 * 100 / $garanty_TBW))"%"
+										echo "Теоретически возможный срок эксплуатации с учетом ресурса записи: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))" лет"
 								fi
 								
 						fi
 						
-					else echo -e '\E[1;31m'"Дата введена не корректно"; tput sgr0
+					else echo -e '\E[1;31m'"Дата введена некорректно"; tput sgr0
 				fi
 		fi
 
