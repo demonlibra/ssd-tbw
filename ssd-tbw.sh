@@ -4,16 +4,16 @@ echo "Для выполнения команды smartctl подтребуютс
 sudo echo
 clear
 
-# Вывод списка всех дисков
+# Вывод списка всех накопителей
 echo
-echo "Обнаружены следующие диски:"
+echo "Обнаружены следующие накопители:"
 echo
 lsblk -d -o NAME,SIZE,MODEL,SERIAL
 echo "------------------------------------------------------"
 
-# Поиск дисков SSD
+# Поиск накопителей SSD
 echo
-echo "Обнаружены следующие диски SSD:"
+echo "Обнаружены следующие накопители SSD:"
 echo
 disks=`lsblk -d -n -o NAME`
 for disk in $disks
@@ -24,61 +24,50 @@ for disk in $disks
 done
 echo "------------------------------------------------------"
 
-# Ввод индентификатора диска
+# Ввод индентификатора накопителя
 echo
-echo -n "Введите идентификатор диска /dev/"
+echo -n "Введите идентификатор накопителя /dev/"
 read dev
 
 if [[ $disks == *"$dev"* ]]
 	then
 
-		# Вывод информации о диске
+		# Вывод информации о накопителе
 		echo
-		sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed 's/Device Model/Модель диска/g'
+		sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed 's/Device Model/Модель/g'
 		sudo smartctl /dev/"$dev" --all | grep "Serial Number" | sed 's/Serial Number/Серийный номер/g'
-		sudo smartctl /dev/"$dev" --all | grep "User Capacity" | sed 's/User Capacity/Объем диска/g'
-
-		# Всего записано блоков - 241 Total_LBAs_Written
-		Total_LBAs_Written=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
-		Total_LBAs_Written=${Total_LBAs_Written##* }
-
-		# Всего записано Gib - 241 Lifetime_Writes_GiB
-		Lifetime_Writes_GiB=`sudo smartctl /dev/"$dev" --all | grep "Lifetime_Writes_GiB"`
-		Lifetime_Writes_GiB=${Lifetime_Writes_GiB##* }
-
-		# Всего записано блоков по 32MiB - 241 Host_Writes_32MiB
-		Host_Writes_32MiB=`sudo smartctl /dev/"$dev" --all | grep "Host_Writes_32MiB"`
-		Host_Writes_32MiB=${Host_Writes_32MiB##* }
+		sudo smartctl /dev/"$dev" --all | grep "User Capacity" | sed 's/User Capacity/Объем/g'
 
 		# Размер сектора
 		echo
 		sector_size=`cat /sys/block/"$dev"/queue/hw_sector_size`
 		echo "Sector Size: $sector_size"
 		
+		ATTRIBUTE241=`sudo smartctl /dev/"$dev" --all | grep "241 Total\|241 Host\|241 Lifetime"`
+		ATTRIBUTE241_NAME=${ATTRIBUTE241#* }
+		ATTRIBUTE241_NAME=${ATTRIBUTE241_NAME%% *}
+		ATTRIBUTE241_VALUE=${ATTRIBUTE241##* }					# Значение - символы от последнего пробела справа
+		echo "241 $ATTRIBUTE241_NAME: $ATTRIBUTE241_VALUE"
+		
 		# Расчет записанных данных
-		if [ -n "$Total_LBAs_Written" ]
-			then
-				echo "241 Total_LBAs_Written: $Total_LBAs_Written"
-				TBW=`echo "scale=3; $sector_size * $Total_LBAs_Written / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
-		elif [ -n "$Lifetime_Writes_GiB" ]
-			then
-				echo "241 Lifetime_Writes_GiB: $Lifetime_Writes_GiB"
-				TBW=`echo "scale=3; $Lifetime_Writes_GiB / 1024" | bc -l | sed 's/^\./0./'`
-		elif [ -n "$Host_Writes_32MiB" ]
-			then
-				echo "241 Host_Writes_32MiB: $Host_Writes_32MiB"
-				TBW=`echo "scale=3; $Host_Writes_32MiB * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+		if [[ -n `echo $ATTRIBUTE241_NAME | grep "LBAs"` ]]
+			then TBW=`echo "scale=3; $sector_size * $ATTRIBUTE241_VALUE / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+		elif [[ -n `echo $ATTRIBUTE241_NAME | grep "GiB\|GB"` ]]
+			then TBW=`echo "scale=3; $ATTRIBUTE241_VALUE / 1024" | bc -l | sed 's/^\./0./'`
+		elif [[ -n `echo $ATTRIBUTE241_NAME | grep "32MiB"` ]]
+			then TBW=`echo "scale=3; $ATTRIBUTE241_VALUE * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 		fi
 
 		if [ -n "$TBW" ]
 			then
 				echo
-				echo -e '\E[1;34m'"Всего записано данных: $TBW ТБайт"; tput sgr0
+				echo -e '\E[1;34m'"Всего записано данных (TBW): $TBW ТБайт"; tput sgr0
 
 				# Косвенная проверка данных параметра 241
-				list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов устройства
+				list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов накопителя
 				used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
-				echo "Всего занято на разделах диска: $used Гбайт"
+				echo "Всего занято на разделах: $used Гбайт"
+				
 				TBWG=`echo "$TBW * 1024" | bc -l`																		#TBW в ГБайтах
 				TBWG=${TBWG%%.*}
 
@@ -86,14 +75,14 @@ if [[ $disks == *"$dev"* ]]
 					then echo
 						echo "Вероятно данные TBW определены неверно."
 						echo "Производитель заложил в параметр 241 только ему ведомые значения."
-						echo "Занимаемое место на диске ($used Гбайт) больше определенного значения TBW ($TBWG Гбайт)."
+						echo "Занимаемое место ($used Гбайт) больше вычисленного значения TBW ($TBWG Гбайт)."
 
 						echo
 						echo -n "Введите Y для выполнения тестовой записи: "
 						read test
 						if [ "${test,,}" = "y" ]
 							then
-								echo -n "Введите полный путь к файлу на SSD для тестовой записи (по умолчанию ssd_test): "
+								echo -n "Введите полный путь к файлу на разделе SSD для тестовой записи (по умолчанию ssd_test): "
 								read path_ssd
 								if [ -z $path_ssd ]; then path_ssd=ssd_test; fi
 
@@ -105,26 +94,27 @@ if [[ $disks == *"$dev"* ]]
 
 								#dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
 								sync
-
-								Total_LBAs_Written=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
-								Total_LBAs_Written=${Total_LBAs_Written##* }
-								echo
-								echo "241 до записи = $Total_LBAs_Written"
-								echo
-
+								
+								ATTRIBUTE241=`sudo smartctl /dev/"$dev" --all | grep "241 Total\|241 Host\|241 Lifetime"`
+								ATTRIBUTE241_VALUE_before=${ATTRIBUTE241##* }
+								
 								dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
 								sync
+
+								ATTRIBUTE241=`sudo smartctl /dev/"$dev" --all | grep "241 Total\|241 Host\|241 Lifetime"`
+								ATTRIBUTE241_VALUE_after=${ATTRIBUTE241##* }
+								
 								echo
+								echo "241 до записи = $ATTRIBUTE241_VALUE_before"
+								echo "241 после записи = $ATTRIBUTE241_VALUE_after"
 
-								Total_LBAs_Written_check=`sudo smartctl /dev/"$dev" --all | grep "Total_LBAs_Written"`
-								Total_LBAs_Written_check=${Total_LBAs_Written_check##* }
-								echo "241 после записи = $Total_LBAs_Written_check"
-
-								difference=$(($Total_LBAs_Written_check - $Total_LBAs_Written))
+								difference=$(($ATTRIBUTE241_VALUE_after - $ATTRIBUTE241_VALUE_before))
 								echo "Разница = $difference"
+								
 								ratio=$(($capacity * 1024 * 1024 / $difference))
 								echo "Коэффициент = $ratio"
-								TBW=`echo "scale=3; $Total_LBAs_Written * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+								
+								TBW=`echo "scale=3; $ATTRIBUTE241_VALUE_after * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 								TBWG=`echo "$TBW * 1024" | bc -l`
 								TBWG=${TBWG%%.*}
 
@@ -137,7 +127,7 @@ if [[ $disks == *"$dev"* ]]
 
 			else
 				echo
-				echo -e '\E[1;31m'"Вывод smartctl не содержит данных для определения записанных данных"; echo "Возможно вы указали не SSD диск."; tput sgr0
+				echo -e '\E[1;31m'"Вывод smartctl не содержит данных для определения записанных данных"; echo "Возможно вы указали не SSD накопитель."; tput sgr0
 		fi
 
 
@@ -151,12 +141,12 @@ if [[ $disks == *"$dev"* ]]
 		Power_On_Years=`echo "scale=2; $Power_On_Hours / 24 / 365" | bc -l | sed 's/^\./0./'`
 		echo -e '\E[1;34m'"Всего отработано: $Power_On_Hours часов = $Power_On_Days дней = $Power_On_Years лет"; tput sgr0
 
-		# Ввод даты установки диска
+		# Ввод даты установки накопителя
 		echo
-		echo -n "Введите дату начала использования диска в формате год-месяц-число: "
+		echo -n "Введите дату начала использования накопителя в формате год-месяц-число: "
 		read start_use
 
-		# Статистика использования диска от даты установки
+		# Статистика использования накопителя от даты установки
 		if [ -n "$start_use" ]
 			then
 				today_seconds=`date '+%s'`
@@ -169,7 +159,7 @@ if [[ $disks == *"$dev"* ]]
 						percent_use=$((100 * $Power_On_Days / $days_use))
 						
 						echo
-						echo "Диск находился в работе "$percent_use"% от даты приобритения"
+						echo "Накопитель находился в работе "$percent_use"% от даты приобритения"
 						
 						if [ -n "$TBWG" ]
 							then
@@ -184,10 +174,10 @@ if [[ $disks == *"$dev"* ]]
 										resource=$(($TBWG / 1024 * 100 / $garanty_TBW))
 										echo
 										if (( $resource < 30 ))
-											then echo -e '\E[1;32m'"Израсходованный ресурс диска: $resource%"; tput sgr0 
+											then echo -e '\E[1;32m'"Израсходованный ресурс: $resource%"; tput sgr0 
 										elif (( $resource < 50 ))
-											then echo -e '\E[1;33m'"Израсходованный ресурс диска: $resource%"; tput sgr0
-										else echo -e '\E[1;31m'"Израсходованный ресурс диска: $resource%"; tput sgr0
+											then echo -e '\E[1;33m'"Израсходованный ресурс: $resource%"; tput sgr0
+										else echo -e '\E[1;31m'"Израсходованный ресурс: $resource%"; tput sgr0
 										fi
 										echo "Теоретически возможный срок эксплуатации с учетом ресурса записи: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))" лет"
 								fi
@@ -199,7 +189,7 @@ if [[ $disks == *"$dev"* ]]
 		fi
 
 		
-	else echo -e '\E[1;31m'"Диск \"$dev\" не обнаружен. Проверьте вводимые данные"; tput sgr0
+	else echo -e '\E[1;31m'"Накопитель \"$dev\" не обнаружен. Проверьте вводимые данные"; tput sgr0
 fi
 
 echo
