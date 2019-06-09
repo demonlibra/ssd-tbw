@@ -18,7 +18,7 @@ echo
 disks=`lsblk -d -n -o NAME`
 for disk in $disks
 	do
-		if [ `sudo smartctl /dev/"$disk" --all | grep -c "SSD"` -ne 0 ]
+		if [ `sudo smartctl /dev/"$disk" -i | grep -c -i "SSD"` -ne 0 ]
 			then lsblk -d -o NAME,SIZE,MODEL,SERIAL /dev/$disk
 		fi
 done
@@ -34,16 +34,16 @@ if [[ $disks == *"$dev"* ]]
 
 		# Вывод информации о накопителе
 		echo
-		sudo smartctl /dev/"$dev" --all | grep "Device Model" | sed 's/Device Model/Модель/g'
-		sudo smartctl /dev/"$dev" --all | grep "Serial Number" | sed 's/Serial Number/Серийный номер/g'
-		sudo smartctl /dev/"$dev" --all | grep "User Capacity" | sed 's/User Capacity/Объем/g'
+		sudo smartctl /dev/"$dev" -i | grep "Device Model" | sed 's/Device Model/Модель/g'
+		sudo smartctl /dev/"$dev" -i | grep "Serial Number" | sed 's/Serial Number/Серийный номер/g'
+		sudo smartctl /dev/"$dev" -i | grep "User Capacity" | sed 's/User Capacity/Объем/g'
 
 		# Размер сектора
 		echo
 		sector_size=`cat /sys/block/"$dev"/queue/hw_sector_size`
 		echo "Sector Size: $sector_size"
 		
-		ATTRIBUTE241=`sudo smartctl /dev/"$dev" --all | grep "241 Total\|241 Host\|241 Lifetime"`
+		ATTRIBUTE241=`sudo smartctl /dev/"$dev" -A | grep "241 Total\|241 Host\|241 Lifetime"`
 		ATTRIBUTE241_NAME=${ATTRIBUTE241#* }
 		ATTRIBUTE241_NAME=${ATTRIBUTE241_NAME%% *}
 		ATTRIBUTE241_VALUE=${ATTRIBUTE241##* }					# Значение - символы от последнего пробела справа
@@ -95,13 +95,13 @@ if [[ $disks == *"$dev"* ]]
 								#dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
 								sync
 								
-								ATTRIBUTE241=`sudo smartctl /dev/"$dev" --all | grep "241 Total\|241 Host\|241 Lifetime"`
+								ATTRIBUTE241=`sudo smartctl /dev/"$dev" -A | grep "241 Total\|241 Host\|241 Lifetime"`
 								ATTRIBUTE241_VALUE_before=${ATTRIBUTE241##* }
 								
 								dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
 								sync
 
-								ATTRIBUTE241=`sudo smartctl /dev/"$dev" --all | grep "241 Total\|241 Host\|241 Lifetime"`
+								ATTRIBUTE241=`sudo smartctl /dev/"$dev" -A | grep "241 Total\|241 Host\|241 Lifetime"`
 								ATTRIBUTE241_VALUE_after=${ATTRIBUTE241##* }
 								
 								echo
@@ -132,7 +132,7 @@ if [[ $disks == *"$dev"* ]]
 
 
 		# Количество отработанных часов
-		Power_On_Hours=`sudo smartctl /dev/"$dev" --all | grep "Power_On_Hours"`
+		Power_On_Hours=`sudo smartctl /dev/"$dev" -A | grep "Power_On_Hours"`
 		Power_On_Hours=${Power_On_Hours##* }
 		echo
 		echo "9 Power_On_Hours: $Power_On_Hours"
