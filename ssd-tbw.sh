@@ -171,17 +171,18 @@ if [[ $disks == *"$dev"* ]]
 								
 								if [ -n "$garanty_TBW" ]
 									then
-										resource=$(($TBWG / 1024 * 100 / $garanty_TBW))
+										resource=`echo "scale=1; ($TBWG / 1024 * 100 / $garanty_TBW)" | bc -l | sed 's/^\./0./'`
 										echo
-										if (( $resource < 30 ))
+										resource_round=${resource%%.*}
+										if (( $resource_round < 30 ))
 											then echo -e '\E[1;32m'"Израсходованный ресурс: $resource%"; tput sgr0 
-										elif (( $resource < 50 ))
+										elif (( $resource_round < 50 ))
 											then echo -e '\E[1;33m'"Израсходованный ресурс: $resource%"; tput sgr0
 										else echo -e '\E[1;31m'"Израсходованный ресурс: $resource%"; tput sgr0
 										fi
 										echo "Теоретически возможный срок эксплуатации с учетом ресурса записи: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))" лет"
 								fi
-								
+
 						fi
 						
 					else echo -e '\E[1;31m'"Дата введена некорректно"; tput sgr0

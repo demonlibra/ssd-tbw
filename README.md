@@ -1,4 +1,4 @@
-# Сценарий bash для вывода данных оценки ресурса диска SSD
+# Сценарий bash вывода данных для оценки ресурса диска SSD
   
 ## Использование
 1. Скачайте и распакуйте архив [Clone or download - Download ZIP](https://github.com/demonlibra/ssd-tbw/archive/master.zip).  
