@@ -34,20 +34,24 @@ if [[ $disks == *"$dev"* ]]
 
 		# Вывод информации о накопителе
 		echo
-		sudo smartctl /dev/"$dev" -i | grep "Device Model" | sed 's/Device Model/Модель/g'
-		sudo smartctl /dev/"$dev" -i | grep "Serial Number" | sed 's/Serial Number/Серийный номер/g'
-		sudo smartctl /dev/"$dev" -i | grep "User Capacity" | sed 's/User Capacity/Объем/g'
+		sudo smartctl /dev/"$dev" -i | grep "Device Model" | sed 's/Device Model:/Модель:              /g'
+		sudo smartctl /dev/"$dev" -i | grep "Serial Number" | sed 's/Serial Number:/Серийный номер:       /g'
+		sudo smartctl /dev/"$dev" -i | grep "User Capacity" | sed 's/User Capacity:/Объем:                /g'
+
+		# Занятое место на разделах выбранного накопителя
+		list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов накопителя
+		used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
+		echo "Всего занято на разделах: $used Гбайт"
 
 		# Размер сектора
-		echo
 		sector_size=`cat /sys/block/"$dev"/queue/hw_sector_size`
-		echo "Sector Size: $sector_size"
-		
+		echo "Размер сектора:           $sector_size байт"
+
 		ATTRIBUTE241=`sudo smartctl /dev/"$dev" -A | grep "241 Total\|241 Host\|241 Lifetime"`
 		ATTRIBUTE241_NAME=${ATTRIBUTE241#* }
 		ATTRIBUTE241_NAME=${ATTRIBUTE241_NAME%% *}
 		ATTRIBUTE241_VALUE=${ATTRIBUTE241##* }					# Значение - символы от последнего пробела справа
-		echo "241 $ATTRIBUTE241_NAME: $ATTRIBUTE241_VALUE"
+		echo "241 $ATTRIBUTE241_NAME:   $ATTRIBUTE241_VALUE"
 		
 		# Расчет записанных данных
 		if [[ -n `echo $ATTRIBUTE241_NAME | grep "LBAs"` ]]
@@ -64,11 +68,7 @@ if [[ $disks == *"$dev"* ]]
 				echo -e '\E[1;34m'"Всего записано данных (TBW): $TBW ТБайт"; tput sgr0
 
 				# Косвенная проверка данных параметра 241
-				list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов накопителя
-				used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
-				echo "Всего занято на разделах: $used Гбайт"
-				
-				TBWG=`echo "$TBW * 1024" | bc -l`																		#TBW в ГБайтах
+				TBWG=`echo "$TBW * 1024" | bc -l`	# TBW в ГБайтах
 				TBWG=${TBWG%%.*}
 
 				if  [ "$used" -gt "$TBWG" ]
