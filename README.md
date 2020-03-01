@@ -16,4 +16,4 @@
 ## Предложения и замечания
 Свои замечания Вы можете разместить на форуме [linuxmint.com.ru](https://linuxmint.com.ru/viewtopic.php?p=81012#p81012).
 
-<img width="280" src="https://github.com/demonlibra/ssd-tbw/blob/master/ssd-tbw.png" />
+<img width="280" src="https://github.com/demonlibra/ssd-tbw/blob/master/ssd-tbw_screenshot.png" />

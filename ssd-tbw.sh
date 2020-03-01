@@ -181,6 +181,7 @@ if [[ $disks == *"$dev"* ]]
 										else echo -e '\E[1;31m'"Израсходованный ресурс: $resource%"; tput sgr0
 										fi
 										echo "Теоретический срок эксплуатации (лет): "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))
+										echo "Дата запуска сценария: "$(date +%F" "%H-%M-%S)
 								fi
 
 						fi
