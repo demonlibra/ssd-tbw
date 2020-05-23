@@ -39,8 +39,10 @@ if [[ $disks == *"$dev"* ]]
 		sudo smartctl /dev/"$dev" -i | grep "User Capacity" | sed 's/User Capacity:/Объем:                /g'
 
 		# Занятое место на разделах выбранного накопителя
-		list_parts=`lsblk -l -p -n -o NAME /dev/$dev`															# Список разделов накопителя
+		list_parts=`lsblk -l -p -n -o NAME /dev/$dev`								# Список разделов накопителя
 		used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
+		size=`df --total --block-size=G --output=size $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный объем диска
+		avail=`df --total --block-size=G --output=avail $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Свободный объем диска
 		echo "Всего занято на разделах: $used Гбайт"
 
 		# Размер сектора
@@ -181,6 +183,8 @@ if [[ $disks == *"$dev"* ]]
 										else echo -e '\E[1;31m'"Израсходованный ресурс: $resource%"; tput sgr0
 										fi
 										echo "Теоретический срок эксплуатации (лет): "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))
+										echo "Теоретический срок эксплуатации (лет) с учетом свободного места: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365*$avail/$size))
+										echo
 										echo "Дата запуска сценария: "$(date +%F" "%H-%M-%S)
 								fi
 
