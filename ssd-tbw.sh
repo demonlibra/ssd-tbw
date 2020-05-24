@@ -16,6 +16,18 @@ echo
 echo "Обнаружены следующие накопители SSD:"
 echo
 disks=`lsblk -d -n -o NAME`
+
+# Проверка наличия установленного пакета smartmontools
+if [[ `dpkg -l| grep smartmontools` = "" ]]
+	then
+		echo "smartmontools не установлен"
+		echo "Выполните команду sudo apt install smartmontools"
+		echo
+		read -p "Нажмите ENTER чтобы закрыть окно"
+		exit
+fi
+
+# Перебираем диски
 for disk in $disks
 	do
 		if [ `sudo smartctl /dev/"$disk" -i | grep -c -i "SSD"` -ne 0 ]
