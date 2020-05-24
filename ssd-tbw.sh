@@ -113,17 +113,23 @@ if [[ $disks == *"$dev"* ]]
 								difference=$(($ATTRIBUTE241_VALUE_after - $ATTRIBUTE241_VALUE_before))
 								echo "Разница = $difference"
 								
-								ratio=$(($capacity * 1024 * 1024 / $difference))
-								echo "Коэффициент = $ratio"
-								
-								TBW=`echo "scale=3; $ATTRIBUTE241_VALUE_after * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
-								TBWG=`echo "$TBW * 1024" | bc -l`
-								TBWG=${TBWG%%.*}
+								if [ $difference -gt 0 ]
+									then
+										ratio=$(($capacity * 1024 * 1024 / $difference))
+										echo "Коэффициент = $ratio"
 
-								echo
-								echo -e '\E[1;34m'"Расчитанное значение TBW после тестовой записи: $TBW ТБайт"; tput sgr0
-								rm $path_ssd
-								echo "------------------------------------------------------"
+										TBW=`echo "scale=3; $ATTRIBUTE241_VALUE_after * $ratio / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+										TBWG=`echo "$TBW * 1024" | bc -l`
+										TBWG=${TBWG%%.*}
+
+										echo
+										echo -e '\E[1;34m'"Расчитанное значение TBW после тестовой записи: $TBW ТБайт"; tput sgr0
+										rm $path_ssd
+										echo "------------------------------------------------------"
+									else
+										echo "Параметр 241 не изменился. Определить объем записанных данных не удалось."
+										echo "Вы можете попробовать указать объем тестовой записи на порядок больше, например 1024 Мб."
+								fi
 						fi
 				fi
 
