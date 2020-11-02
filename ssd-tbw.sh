@@ -183,7 +183,10 @@ if [[ $disks == *"$dev"* ]]
 						
 						if [ -n "$TBWG" ]
 							then
-								echo "Средний объем записываемых данных (ГБайт в день): "$(($TBWG / $days_use))
+								TBWG_day=`echo "scale=1; ($TBWG / $days_use)" | bc -l | sed 's/^\./0./'`
+								TBW_year=`echo "scale=1; (365 * $TBW / $days_use)" | bc -l | sed 's/^\./0./'`
+								echo "Средний объем записываемых данных (ГБайт в день): "$TBWG_day
+								echo "                                   (Тбайт в год): "$TBW_year
 								
 								echo
 								echo -n "Введите гарантированный производителем объем записываемых данных (Тбайт): "
