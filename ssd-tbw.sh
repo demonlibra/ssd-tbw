@@ -206,7 +206,8 @@ if [[ $disks == *"$dev"* ]]
 										echo "Теоретический срок эксплуатации (лет): "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))
 										echo "Теоретический срок эксплуатации (лет) с учетом свободного места: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365*$avail/$size))
 										echo
-										echo "Дата запуска сценария: "$(date +%F" "%H-%M-%S)
+										date_now=$(date +%F"_"%H-%M-%S)
+										echo "Дата запуска сценария: "$date_now
 								fi
 
 						fi
@@ -220,4 +221,9 @@ if [[ $disks == *"$dev"* ]]
 fi
 
 echo
-read -p "Нажмите ENTER чтобы закрыть окно"
+echo -n "Введите Y чтобы сделать снимок: "
+read screenshot
+
+if [ $screenshot = "Y" ] || [ $screenshot = "y" ]
+	then gnome-screenshot -w -B -f "ssd-tbw_${date_now}.png"
+fi	
