@@ -163,7 +163,7 @@ if [[ $disks == *"$dev"* ]]
 
 		# Ввод даты установки накопителя
 		echo
-		echo -n "Введите дату начала использования накопителя в формате год-месяц-число: "
+		echo -n "Введите дату установки накопителя (в формате год-месяц-число): "
 		read start_use
 
 		# Статистика использования накопителя от даты установки
@@ -175,18 +175,19 @@ if [[ $disks == *"$dev"* ]]
 				if [ $? = 0 ] && [ $today_seconds -gt $start_use_seconds ]
 					then
 						days_use=$(( ($today_seconds - $start_use_seconds) / (24 * 3600) ))
+						years_use=`echo "scale=1; ($days_use / 365)" | bc -l | sed 's/^\./0./'`
 						#echo $days_use
+						#$echo $years_use
 						percent_use=$((100 * $Power_On_Days / $days_use))
 						
 						echo
-						echo "Накопитель находился в работе "$percent_use"% времени с момента начала использования"
+						echo "Накопитель использовался ${percent_use}% времени с момента установки"
 						
 						if [ -n "$TBWG" ]
 							then
 								TBWG_day=`echo "scale=1; ($TBWG / $days_use)" | bc -l | sed 's/^\./0./'`
 								TBW_year=`echo "scale=1; (365 * $TBW / $days_use)" | bc -l | sed 's/^\./0./'`
-								echo "Средний объем записываемых данных (ГБайт в день): "$TBWG_day
-								echo "                                   (Тбайт в год): "$TBW_year
+								echo "Средний объем записываемых данных: ${TBWG_day} ГБайт в день или ${TBW_year} Тбайт в год"
 								
 								echo
 								echo -n "Введите гарантированный производителем объем записываемых данных (Тбайт): "
@@ -195,10 +196,11 @@ if [[ $disks == *"$dev"* ]]
 								if [ -n "$garanty_TBW" ]
 									then
 										resource=`echo "scale=1; ($TBWG / 1024 * 100 / $garanty_TBW)" | bc -l | sed 's/^\./0./'`
+										resource_year=`echo "scale=1; ($resource / $years_use)" | bc -l | sed 's/^\./0./'`
 										echo
 										resource_round=${resource%%.*}
 										if (( $resource_round < 30 ))
-											then echo -e '\E[1;32m'"Израсходованный ресурс: $resource%"; tput sgr0 
+											then echo -e '\E[1;32m'"Израсходованный ресурс: ${resource}% за ${years_use} лет (${resource_year}% в год)"; tput sgr0 
 										elif (( $resource_round < 50 ))
 											then echo -e '\E[1;33m'"Израсходованный ресурс: $resource%"; tput sgr0
 										else echo -e '\E[1;31m'"Израсходованный ресурс: $resource%"; tput sgr0
