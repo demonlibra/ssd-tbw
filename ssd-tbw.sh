@@ -1,6 +1,19 @@
 #!/bin/bash
+
+# Проверка наличия установленного пакета smartmontools
+check=`whereis smartmontools`
+if [ ! "${check#*:}" ]
+	then
+		echo "smartmontools не установлен"
+		echo "Выполните команду sudo apt install smartmontools"
+		echo
+		read -p "Нажмите ENTER чтобы закрыть окно"
+		exit
+fi
+
 # Предварительный ввод пароля
 echo "Для выполнения команды smartctl подтребуются права root"
+echo
 sudo echo
 clear
 
@@ -17,16 +30,6 @@ echo "Обнаружены следующие накопители SSD:"
 echo
 disks=`lsblk -d -n -o NAME`
 
-# Проверка наличия установленного пакета smartmontools
-if [[ `dpkg -l| grep smartmontools` = "" ]]
-	then
-		echo "smartmontools не установлен"
-		echo "Выполните команду sudo apt install smartmontools"
-		echo
-		read -p "Нажмите ENTER чтобы закрыть окно"
-		exit
-fi
-
 # Перебираем диски
 for disk in $disks
 	do
@@ -38,8 +41,9 @@ echo "------------------------------------------------------"
 
 # Ввод индентификатора накопителя
 echo
-echo -n "Введите идентификатор накопителя /dev/"
+echo -n "Введите идентификатор накопителя из поля NAME: /dev/sd"
 read dev
+dev="sd"$dev
 
 if [[ $disks == *"$dev"* ]]
 	then
@@ -100,9 +104,9 @@ if [[ $disks == *"$dev"* ]]
 								read path_ssd
 								if [ -z $path_ssd ]; then path_ssd=ssd_test; fi
 
-								echo -n "Введите объем данных в Мб (по умолчанию 100): "
+								echo -n "Введите объем записываемых данных в Мб (по умолчанию 2048Мб или 2Гб): "
 								read capacity
-								if [ -z $capacity ]; then capacity=100; fi
+								if [ -z $capacity ]; then capacity=2048; fi
 
 								echo "------------------------------------------------------"
 
@@ -140,7 +144,7 @@ if [[ $disks == *"$dev"* ]]
 										echo "------------------------------------------------------"
 									else
 										echo "Параметр 241 не изменился. Определить объем записанных данных не удалось."
-										echo "Вы можете попробовать указать объем тестовой записи на порядок больше, например 1024 Мб."
+										echo "Вы можете попробовать указать объем тестовой записи на порядок больше."
 								fi
 						fi
 				fi
@@ -202,14 +206,12 @@ if [[ $disks == *"$dev"* ]]
 										if (( $resource_round < 30 ))
 											then echo -e '\E[1;32m'"Израсходованный ресурс: ${resource}% за ${years_use} лет (${resource_year}% в год)"; tput sgr0 
 										elif (( $resource_round < 50 ))
-											then echo -e '\E[1;33m'"Израсходованный ресурс: $resource%"; tput sgr0
-										else echo -e '\E[1;31m'"Израсходованный ресурс: $resource%"; tput sgr0
+											then echo -e '\E[1;33m'"Израсходованный ресурс: ${resource}% за ${years_use} лет (${resource_year}% в год)"; tput sgr0
+											else echo -e '\E[1;31m'"Израсходованный ресурс: ${resource}% за ${years_use} лет (${resource_year}% в год)"; tput sgr0
 										fi
 										echo "Теоретический срок эксплуатации (лет): "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))
 										echo "Теоретический срок эксплуатации (лет) с учетом свободного места: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365*$avail/$size))
 										echo
-										date_now=$(date +%F"_"%H-%M-%S)
-										echo "Дата запуска сценария: "$date_now
 								fi
 
 						fi
@@ -222,10 +224,18 @@ if [[ $disks == *"$dev"* ]]
 	else echo -e '\E[1;31m'"Накопитель \"$dev\" не обнаружен. Проверьте вводимые данные"; tput sgr0
 fi
 
-echo
-echo -n "Введите Y чтобы сделать снимок: "
-read screenshot
+date_now=$(date +%F"_"%H-%M-%S)
+#echo "Дата запуска сценария: "$date_now
 
-if [ $screenshot = "Y" ] || [ $screenshot = "y" ]
-	then gnome-screenshot -w -B -f "ssd-tbw_${date_now}.png"
-fi	
+# Проверка наличия установленного пакета gnome-screenshot
+check=`whereis gnome-screenshot`
+if [ "${check#*:}" ]
+	then
+		echo
+		echo -n "Разверните окно терминала и введите Y чтобы сохранить снимок в файл: "
+		read screenshot
+
+		if [ $screenshot = "Y" ] || [ $screenshot = "y" ]
+			then gnome-screenshot -w -B -f "ssd-tbw_${date_now}.png"
+		fi
+fi

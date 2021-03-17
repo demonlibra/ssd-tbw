@@ -1,5 +1,9 @@
-# Сценарий bash вывода данных для оценки ресурса диска SSD
-  
+# Сценарий вывода данных для оценки ресурса и статистики использования накопителя SSD
+
+## Совместимость
+
+Проверено в LinuxMint
+
 ## Использование
 1. Скачайте и распакуйте архив [Clone or download - Download ZIP](https://github.com/demonlibra/ssd-tbw/archive/master.zip).  
 2. Извлеките файл `ssd-tbw.sh`.  
@@ -16,4 +20,4 @@
 ## Предложения и замечания
 Свои замечания Вы можете разместить на форуме [linuxmint.com.ru](https://linuxmint.com.ru/viewtopic.php?p=81012#p81012).
 
-<img width="280" src="https://github.com/demonlibra/ssd-tbw/blob/master/2021-01-27_23-32-08.png" />
+<img width="280" src="https://github.com/demonlibra/ssd-tbw/blob/master/ssd-tbw.png" />
