@@ -69,7 +69,10 @@ if [[ $disks == *"$dev"* ]]
 		ATTRIBUTE241_NAME=${ATTRIBUTE241#* }
 		ATTRIBUTE241_NAME=${ATTRIBUTE241_NAME%% *}
 		ATTRIBUTE241_VALUE=${ATTRIBUTE241##* }					# Значение - символы от последнего пробела справа
-		echo "241 $ATTRIBUTE241_NAME:   $ATTRIBUTE241_VALUE"
+		
+		if [ -n "$ATTRIBUTE241_VALUE" ]
+			then echo "241 $ATTRIBUTE241_NAME:   $ATTRIBUTE241_VALUE"
+		fi
 		
 		# Расчет записанных данных
 		if [[ -n `echo $ATTRIBUTE241_NAME | grep "LBAs"` ]]
@@ -80,6 +83,22 @@ if [[ $disks == *"$dev"* ]]
 			then TBW=`echo "scale=3; $ATTRIBUTE241_VALUE * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
 		fi
 
+		if [ -z "$TBW" ]
+			then
+				echo
+				echo "Атрибут с объемом записанных данных не найден. Выполните в терминале команду sudo smartctl /dev/$dev"
+				echo -ne "Проанализируйте вывод smartmontools самостоятельно и введите общий записанный объем в Тб: "
+				read test
+				re='^[0-9]+$'
+				if [[ "$test" =~ $re ]]
+					then
+						TBW=$test
+						TBWG=`echo "$TBW * 1024" | bc -l`
+				else
+					exit
+				fi
+		fi
+		
 		if [ -n "$TBW" ]
 			then
 				echo
@@ -96,9 +115,14 @@ if [[ $disks == *"$dev"* ]]
 						echo "Занимаемое место ($used Гбайт) больше вычисленного значения TBW ($TBWG Гбайт)."
 
 						echo
-						echo -n "Введите Y для выполнения тестовой записи: "
+						echo -n "Введите Y для выполнения тестовой записи или проанализируйте вывод smartmontools самостоятельно и введите общий записанный объем в Тб:"
 						read test
-						if [ "${test,,}" = "y" ]
+						re='^[0-9]+$'
+						if [[ "$test" =~ $re ]]
+							then
+								TBW=$test
+								TBWG=`echo "$TBW * 1024" | bc -l`
+						elif [ "${test,,}" = "y" ]
 							then
 								echo -n "Введите полный путь к файлу на разделе SSD для тестовой записи (по умолчанию ssd_test): "
 								read path_ssd
@@ -156,7 +180,7 @@ if [[ $disks == *"$dev"* ]]
 
 
 		# Количество отработанных часов
-		Power_On_Hours=`sudo smartctl /dev/"$dev" -A | grep "Power_On_Hours"`
+		Power_On_Hours=`sudo smartctl /dev/"$dev" -A | grep -i "Power.On.Hours"`
 		Power_On_Hours=${Power_On_Hours##* }
 		echo
 		echo "9 Power_On_Hours: $Power_On_Hours"
@@ -211,7 +235,7 @@ if [[ $disks == *"$dev"* ]]
 										fi
 										echo "Теоретический срок эксплуатации (лет): "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))
 										echo "Теоретический срок эксплуатации (лет) с учетом свободного места: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365*$avail/$size))
-										echo
+										#echo
 								fi
 
 						fi
@@ -235,7 +259,7 @@ if [ "${check#*:}" ]
 		echo -n "Разверните окно терминала и введите Y чтобы сохранить снимок в файл: "
 		read screenshot
 
-		if [ $screenshot = "Y" ] || [ $screenshot = "y" ]
+		if [ "${screenshot,,}" = "y" ]
 			then gnome-screenshot -w -B -f "ssd-tbw_${date_now}.png"
 		fi
 fi

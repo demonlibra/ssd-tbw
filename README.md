@@ -2,7 +2,7 @@
 
 ## Совместимость
 
-Проверено в LinuxMint
+Проверено в LinuxMint.
 
 ## Использование
 1. Скачайте и распакуйте архив [Clone or download - Download ZIP](https://github.com/demonlibra/ssd-tbw/archive/master.zip).  
