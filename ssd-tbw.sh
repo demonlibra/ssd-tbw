@@ -57,8 +57,9 @@ if [[ $disks == *"$dev"* ]]
 
 		# Занятое место на разделах выбранного накопителя
 		list_parts=`lsblk -l -p -n -o NAME /dev/$dev`								# Список разделов накопителя
-		used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный занимаемый объем в Гбайтах
-		size=`df --total --block-size=G --output=size $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Суммарный объем диска
+		used=`df --total --block-size=G --output=used $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`		# Суммарный занимаемый объем в Гбайтах
+		size=`df --total --block-size=G --output=size $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`		# Суммарный объем диска
+		used_percent=$(($used*100/$size))																								# Процент используемого объема
 		avail=`df --total --block-size=G --output=avail $list_parts | tail -n 1 | sed 's/G//g' | sed 's/ //g'`	# Свободный объем диска
 		echo "Всего занято на разделах: $used Гбайт"
 
@@ -73,6 +74,7 @@ if [[ $disks == *"$dev"* ]]
 		
 		if [ -n "$ATTRIBUTE241_VALUE" ]
 			then
+				echo
 				echo "241 $ATTRIBUTE241_NAME:   $ATTRIBUTE241_VALUE"
 				# Расчет записанных данных
 				if [[ -n `echo $ATTRIBUTE241_NAME | grep "LBAs"` ]]
@@ -108,7 +110,7 @@ if [[ $disks == *"$dev"* ]]
 		
 		if [ -n "$TBW" ]
 			then
-				echo
+				#echo
 				echo -e '\E[1;34m'"Всего записано данных (TBW): $TBW ТБайт"; tput sgr0
 
 				# Косвенная проверка данных параметра 241
@@ -253,8 +255,7 @@ if [[ $disks == *"$dev"* ]]
 											then echo -e '\E[1;33m'"Израсходованный ресурс: ${resource}% за ${years_use} лет (${resource_year}% в год)"; tput sgr0
 											else echo -e '\E[1;31m'"Израсходованный ресурс: ${resource}% за ${years_use} лет (${resource_year}% в год)"; tput sgr0
 										fi
-										echo "Теоретический срок эксплуатации (лет): "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))
-										echo "Теоретический срок эксплуатации (лет) с учетом свободного места: "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365*$avail/$size))
+										echo "Теоретический срок эксплуатации (лет): "$(($garanty_TBW * 1024 / $TBWG * $days_use / 365))" ("$(($garanty_TBW * 1024 / $TBWG * $days_use / 365*$avail/$size))" с учетом занимаего объема ${used_percent}%)"
 										#echo
 								fi
 
