@@ -34,7 +34,7 @@ disks=`lsblk -d -n -o NAME`
 for disk in $disks
 	do
 		check=`sudo smartctl /dev/"$disk" -i`
-		if [ `echo "$check" | grep -c -i "ssd"` -ne 0 ] || [ `echo "$check" | grep -c -i "solid.state"` -ne 0 ]
+		if [ `echo "$check" | grep -c -i "ssd"` -ne 0 ] || [ `echo "$check" | grep -c -i "solid.state"` -ne 0 ] || [ `echo "$check" | grep -c -i "nvme"` -ne 0 ]
 			then lsblk -d -o NAME,SIZE,MODEL,SERIAL /dev/$disk
 		fi
 done
