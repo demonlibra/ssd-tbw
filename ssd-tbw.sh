@@ -149,7 +149,7 @@ if [[ $disks == *"$dev"* ]]
 								ATTRIBUTE241=`sudo smartctl /dev/"$dev" -A | grep "241 Total\|241 Host\|241 Lifetime"`
 								ATTRIBUTE241_VALUE_before=${ATTRIBUTE241##* }
 								
-								dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress
+								dd if=/dev/urandom of="$path_ssd" bs=1M count=$capacity status=progress conv=excl
 								sync
 
 								ATTRIBUTE241=`sudo smartctl /dev/"$dev" -A | grep "241 Total\|241 Host\|241 Lifetime"`
