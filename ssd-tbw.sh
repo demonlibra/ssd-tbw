@@ -33,7 +33,8 @@ disks=`lsblk -d -n -o NAME`
 # Перебираем диски
 for disk in $disks
 	do
-		if [ `sudo smartctl /dev/"$disk" -i | grep -c -i "SSD"` -ne 0 ]
+		check=`sudo smartctl /dev/"$disk" -i`
+		if [ `echo "$check" | grep -c -i "ssd"` -ne 0 ] || [ `echo "$check" | grep -c -i "solid.state"` -ne 0 ]
 			then lsblk -d -o NAME,SIZE,MODEL,SERIAL /dev/$disk
 		fi
 done
@@ -41,7 +42,7 @@ echo "------------------------------------------------------"
 
 # Ввод индентификатора накопителя
 echo
-echo -n "Введите идентификатор накопителя из поля NAME: /dev/sd"
+echo -n "Введите идентификатор накопителя из поля NAME: /dev/"
 read dev
 dev="sd"$dev
 
@@ -50,9 +51,9 @@ if [[ $disks == *"$dev"* ]]
 
 		# Вывод информации о накопителе
 		echo
-		sudo smartctl /dev/"$dev" -i | grep "Device Model" | sed 's/Device Model:/Модель:              /g'
-		sudo smartctl /dev/"$dev" -i | grep "Serial Number" | sed 's/Serial Number:/Серийный номер:       /g'
-		sudo smartctl /dev/"$dev" -i | grep "User Capacity" | sed 's/User Capacity:/Объем:                /g'
+		sudo smartctl /dev/"$dev" -i | grep -i "Device Model" | sed 's/Device Model:/Модель:              /g'
+		sudo smartctl /dev/"$dev" -i | grep -i "Serial Number" | sed 's/Serial Number:/Серийный номер:       /g'
+		sudo smartctl /dev/"$dev" -i | grep -i "User Capacity" | sed 's/User Capacity:/Объем:                /g'
 
 		# Занятое место на разделах выбранного накопителя
 		list_parts=`lsblk -l -p -n -o NAME /dev/$dev`								# Список разделов накопителя
@@ -71,23 +72,23 @@ if [[ $disks == *"$dev"* ]]
 		ATTRIBUTE241_VALUE=${ATTRIBUTE241##* }					# Значение - символы от последнего пробела справа
 		
 		if [ -n "$ATTRIBUTE241_VALUE" ]
-			then echo "241 $ATTRIBUTE241_NAME:   $ATTRIBUTE241_VALUE"
+			then
+				echo "241 $ATTRIBUTE241_NAME:   $ATTRIBUTE241_VALUE"
+				# Расчет записанных данных
+				if [[ -n `echo $ATTRIBUTE241_NAME | grep "LBAs"` ]]
+					then TBW=`echo "scale=3; $sector_size * $ATTRIBUTE241_VALUE / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+				elif [[ -n `echo $ATTRIBUTE241_NAME | grep "GiB\|GB"` ]]
+					then TBW=`echo "scale=3; $ATTRIBUTE241_VALUE / 1024" | bc -l | sed 's/^\./0./'`
+				elif [[ -n `echo $ATTRIBUTE241_NAME | grep "32MiB"` ]]
+					then TBW=`echo "scale=3; $ATTRIBUTE241_VALUE * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
+				fi
 		fi
 		
-		# Расчет записанных данных
-		if [[ -n `echo $ATTRIBUTE241_NAME | grep "LBAs"` ]]
-			then TBW=`echo "scale=3; $sector_size * $ATTRIBUTE241_VALUE / 1024 / 1024 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
-		elif [[ -n `echo $ATTRIBUTE241_NAME | grep "GiB\|GB"` ]]
-			then TBW=`echo "scale=3; $ATTRIBUTE241_VALUE / 1024" | bc -l | sed 's/^\./0./'`
-		elif [[ -n `echo $ATTRIBUTE241_NAME | grep "32MiB"` ]]
-			then TBW=`echo "scale=3; $ATTRIBUTE241_VALUE * 32 / 1024 / 1024" | bc -l | sed 's/^\./0./'`
-		fi
-
 		if [ -z "$TBW" ]
 			then
 				echo
-				echo "Атрибут с объемом записанных данных не найден. Выполните в терминале команду sudo smartctl /dev/$dev"
-				echo -ne "Проанализируйте вывод smartmontools самостоятельно и введите общий записанный объем в Тб: "
+				echo "Атрибут с объемом записанных данных не найден. Откройте дополнительное окно терминала и выполните команду sudo smartctl -A /dev/$dev"
+				echo -ne "Проанализируйте вывод smartmontools самостоятельно и введите общий записанный объем в терабайтах: "
 				read test
 				re='^[0-9]+$'
 				if [[ "$test" =~ $re ]]
