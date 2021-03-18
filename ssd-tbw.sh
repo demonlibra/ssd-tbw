@@ -34,8 +34,7 @@ disks=`lsblk -d -n -o NAME`
 # Перебираем диски
 for disk in $disks
 	do
-		check=`sudo smartctl /dev/"$disk" -i`
-		if [ `echo "$check" | grep -c -i "ssd"` -ne 0 ] || [ `echo "$check" | grep -c -i "solid.state"` -ne 0 ] || [ `echo "$check" | grep -c -i "nvme"` -ne 0 ]
+		if [ `sudo smartctl /dev/"$disk" -i | grep -c -i "ssd\|solid.state\|nvme"` -ne 0 ]
 			then lsblk -d -o NAME,SIZE,MODEL,SERIAL /dev/$disk
 		fi
 done
@@ -228,7 +227,7 @@ if [[ $disks == *"$dev"* ]]
 						percent_use=$((100 * $Power_On_Days / $days_use))
 						
 						echo
-						echo "Накопитель использовался ${percent_use}% времени с момента установки"
+						echo "Накопитель использовался ${percent_use}% времени с момента установки в течении $years_use (лет)"
 						
 						if [ -n "$TBWG" ]
 							then
